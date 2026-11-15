@@ -87,21 +87,24 @@ const bar=(v,c)=>`<div class=b><i style="width:${Math.max(0,v)}%;background:${c}
 function ui(){$('#h').textContent=`第${cyc()}周期 ${isNight()?'🌙':'☀️'}｜泥土${R.dirt|0} 藻${R.algae|0} 水${R.water|0} 营养棒${R.mush} 电${R.pow|0} 研究${R.rp|0}`;
 $('#d').innerHTML=D.map(m=>m.dead?`<div class=c>${m.n} ☠</div>`:`<div class=c><b>${m.n}</b>${bar(m.br,'#6cd')}${bar(m.cal,'#eaa')}${bar(100-m.st,'#9d6')}</div>`).join('');
 const bt=(l,f,on,dis)=>`<button class="${on?'on':''}" ${dis?'disabled':''} onclick="${f}">${l}</button>`;
-$('#r1').innerHTML=bt('⛏挖掘',"sel('dig')",tool=='dig')+bt('✖取消',"sel('can')",tool=='can')+Object.keys(BD).map(k=>{const d=BD[k],lk=d[3]&&!tech[d[3]];return bt(`${d[0]}${d[1]} ${d[2]}`,`sel('${k}')`,tool==k,lk||R.dirt<d[2])}).join('');
-$('#r2').innerHTML=bt('👁'+['标准','氧气','二氧化碳'][ov],'ov=(ov+1)%3;ui()')+bt('⏩×'+spd,'spd=spd%3+1;ui()')+Object.keys(TE).filter(k=>!tech[k]).map(k=>bt(`🧪解锁${TE[k][0]} ${TE[k][1]}`,`unl('${k}')`,0,R.rp<TE[k][1])).join('')+(ready&&D.length<7?bt('🖨招募新复制人','recruit()',1):'')}
+const h1=bt('⛏挖掘',"sel('dig')",tool=='dig')+bt('✖取消',"sel('can')",tool=='can')+Object.keys(BD).map(k=>{const d=BD[k],lk=d[3]&&!tech[d[3]];return bt(`${d[0]}${d[1]} ${d[2]}`,`sel('${k}')`,tool==k,lk||R.dirt<d[2])}).join('');const h2=bt('💾存档','save()')+bt('🆕新游戏','newGame()')+bt('👁'+['标准','氧气','二氧化碳'][ov],'ov=(ov+1)%3;ui()')+bt('⏩×'+spd,'spd=spd%3+1;ui()')+Object.keys(TE).filter(k=>!tech[k]).map(k=>bt(`🧪解锁${TE[k][0]} ${TE[k][1]}`,`unl('${k}')`,0,R.rp<TE[k][1])).join('')+(ready&&D.length<7?bt('🖨招募新复制人','recruit()',1):'');setH('#r1',h1);setH('#r2',h2)}
 function sel(k){tool=tool==k?'':k;anc=null;log(k=='dig'||k=='can'?'点两个对角格框选区域':tool?'点空地放置':'')}
 function unl(k){R.rp-=TE[k][1];tech[k]=1;log('已解锁：'+TE[k][0]);ui()}
 function recruit(){ready=false;D.push(mkD(NM[D.length%8],11));log('新复制人加入了！');ui()}
 cv.onclick=e=>{const r=cv.getBoundingClientRect(),a=Math.floor((e.clientX-r.left)/r.width*W),b=Math.floor((e.clientY-r.top)/r.height*H),i=I(a,b);
 if(tool=='dig'||tool=='can'){if(!anc){anc=[a,b];return}for(let u=Math.min(a,anc[0]);u<=Math.max(a,anc[0]);u++)for(let v=Math.min(b,anc[1]);v<=Math.max(b,anc[1]);v++){const j=I(u,v);if(tool=='dig'){if(t[j])mk[j]=1}else{mk[j]=0;if(cl[j])rel(cl[j])}}anc=null}
 else if(BD[tool]){const d=BD[tool];if(t[i]||bm[i])return log('这里放不了');if(R.dirt<d[2])return log('泥土不足');R.dirt-=d[2];const nb={k:tool,x:a,y:b,ok:0,p:0};B.push(nb);bm[i]=nb;ui()}};
+const K='oxy-pocket-save',setH=(s,h)=>{const e=$(s);if(e._h!==h){e._h=h;e.innerHTML=h}};
+function save(q){if(over)return;try{localStorage.setItem(K,JSON.stringify({t:[...t],o:[...o].map(v=>+v.toFixed(1)),c:[...c].map(v=>+v.toFixed(1)),mk:[...mk],R,T,tech,ready,lastPr,B:B.map(b=>({k:b.k,x:b.x,y:b.y,ok:b.ok,p:b.p,w:b.w||0})),D:D.map(m=>({n:m.n,x:Math.round(m.x),y:Math.round(m.y),br:m.br,cal:m.cal,st:m.st,bl:m.bl,hp:m.hp,bk:m.bk,dead:m.dead}))}));if(!q)log('已存档')}catch(e){if(!q)log('存档失败')}}
+function load(){try{const s=JSON.parse(localStorage.getItem(K));if(!s)return;t.set(s.t);o.set(s.o);c.set(s.c);mk.set(s.mk);Object.assign(R,s.R);T=s.T;tech=s.tech;ready=s.ready;lastPr=s.lastPr;B=s.B;bm.fill(null);B.forEach(b=>bm[I(b.x,b.y)]=b);D=s.D.map(d=>Object.assign(mkD(d.n,d.x),d,{p:[],tk:null,w:0,cd:0}));log('已读取存档')}catch(e){}}
+function newGame(){if(confirm('确定开始新游戏？当前进度会丢失')){over=true;try{localStorage.removeItem(K)}catch(e){}location.reload()}}
 let last=0,acc=0,uiT=0;
 function loop(ts){const dt=Math.min(.1,(ts-last)/1000)*spd;last=ts;
 if(!over){T+=dt;acc+=dt;D.forEach(m=>upd(m,dt));bupd(dt);while(acc>.2){acc-=.2;gas()}
 if(cyc()%3==0&&cyc()>lastPr){lastPr=cyc();ready=true;log('打印舱就绪：可招募新复制人')}
 if(msgT>0&&(msgT-=dt)<=0)$('#m').textContent='';
-if(!D.some(m=>!m.dead)){over=true;$('#o').style.display='flex'}
+if(!D.some(m=>!m.dead)){over=true;try{localStorage.removeItem(K)}catch(e){}$('#o').style.display='flex'}
 if((uiT+=dt)>.4){uiT=0;ui()}}
 draw();requestAnimationFrame(loop)}
-$('#sc').scrollTop=2*C;ui();log('先「挖掘」附近的藻类(绿)和冰(蓝)，再建扩散器！');requestAnimationFrame(loop);
+load();setInterval(()=>save(1),10000);addEventListener('pagehide',()=>save(1));document.addEventListener('visibilitychange',()=>{if(document.hidden)save(1)});$('#sc').scrollTop=2*C;ui();log('先「挖掘」附近的藻类(绿)和冰(蓝)，再建扩散器！');requestAnimationFrame(loop);
 </script></body></html>
